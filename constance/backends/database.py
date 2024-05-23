@@ -9,19 +9,19 @@ from django.db import (
 )
 from django.db.models.signals import post_save
 
-from .. import Backend
-from ... import settings, signals, config
+from constance.backends import Backend
+from constance import settings, signals, config
 
 
 class DatabaseBackend(Backend):
     def __init__(self):
-        from .models import Constance
+        from constance.models import Constance
         self._model = Constance
         self._prefix = settings.DATABASE_PREFIX
         self._autofill_timeout = settings.DATABASE_CACHE_AUTOFILL_TIMEOUT
         self._autofill_cachekey = 'autofilled'
 
-        if not self._model._meta.installed:
+        if self._model._meta.app_config is None:
             raise ImproperlyConfigured(
                 "The constance.backends.database app isn't installed "
                 "correctly. Make sure it's in your INSTALLED_APPS setting.")
@@ -68,19 +68,16 @@ class DatabaseBackend(Backend):
 
     def get(self, key):
         key = self.add_prefix(key)
+        value = None
         if self._cache:
             value = self._cache.get(key)
             if value is None:
                 self.autofill()
                 value = self._cache.get(key)
-        else:
-            value = None
         if value is None:
-            try:
-                value = self._model._default_manager.get(key=key).value
-            except (OperationalError, ProgrammingError, self._model.DoesNotExist):
-                pass
-            else:
+            match = self._model._default_manager.filter(key=key).first()
+            if match:
+                value = match.value
                 if self._cache:
                     self._cache.add(key, value)
         return value

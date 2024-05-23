@@ -12,6 +12,8 @@ Features
 Quick Installation
 ------------------
 
+.. code-block::
+
     pip install "django-constance[redis]"
 
 For complete installation instructions, including how to install the
@@ -45,7 +47,7 @@ the :setting:`CONSTANCE_CONFIG` section, like this:
 .. note:: Add constance *before* your project apps.
 
 .. note::  If you use admin extensions like
-   `Grapelli <http://grappelliproject.com/>`_, ``'constance'`` should be added
+   `Grapelli <https://grappelliproject.com/>`_, ``'constance'`` should be added
    in :setting:`INSTALLED_APPS` *before* those extensions.
 
 Here, ``42`` is the default value for the key ``THE_ANSWER`` if it is
@@ -130,7 +132,7 @@ Note: Use later evaluated strings instead of direct classes for the field and wi
             'MY_SELECT_KEY': ('yes', 'select yes or no', 'yes_no_null_select'),
         }
 
-If you want to work with files you can use this configuration:
+If you want to work with images or files you can use this configuration:
 
 .. code-block:: python
 
@@ -149,10 +151,16 @@ When used in a template you probably need to use:
         {% load static %}
 
         {% get_media_prefix as MEDIA_URL %}
-        <img src="{{ MEDIA_URL }}{{ constance.LOGO_IMAGE }}">
+        <img src="{{ MEDIA_URL }}{{ config.LOGO_IMAGE }}">
 
-Images are uploaded to MEDIA_ROOT.
+Images and files are uploaded to ``MEDIA_ROOT`` by default. You can specify a subdirectory of ``MEDIA_ROOT`` to use instead by adding the ``CONSTANCE_FILE_ROOT`` setting. E.g.:
 
+.. code-block:: python
+
+        MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+        CONSTANCE_FILE_ROOT = 'constance'
+
+This will result in files being placed in ``media/constance`` within your ``BASE_DIR``. You can use deeper nesting in this setting (e.g. ``constance/images``) but other relative path components (e.g. ``../``) will be rejected.
 
 Ordered Fields in Django Admin
 ------------------------------
@@ -196,7 +204,7 @@ You can define fieldsets to group settings together:
 Fieldsets collapsing
 --------------------
 
-To make some fieldsets collapsing you can use new format if CONSTANCE_CONFIG_FIELDSETS. Here's an example:
+To make some fieldsets collapsing you can use new format in CONSTANCE_CONFIG_FIELDSETS. Here's an example:
 
 .. code-block:: python
 
@@ -213,6 +221,36 @@ To make some fieldsets collapsing you can use new format if CONSTANCE_CONFIG_FIE
             },
             'Theme Options': ('THEME',),
         }
+
+Field internationalization
+--------------------------
+
+Field description and fieldset headers can be integrated into Django's
+internationalization using the ``gettext_lazy`` function. Note that the
+``CONSTANCE_CONFIG_FIELDSETS`` must be converted to a tuple instead of dict
+as it is not possible to have lazy proxy objects as dictionary keys in the
+settings file. Example:
+
+.. code-block:: python
+
+        from django.utils.translation import gettext_lazy as _
+
+        CONSTANCE_CONFIG = {
+            'SITE_NAME': ('My Title', _('Website title')),
+            'SITE_DESCRIPTION': ('', _('Website description')),
+            'THEME': ('light-blue', _('Website theme')),
+        }
+
+        CONSTANCE_CONFIG_FIELDSETS = (
+            (
+                _('General Options'),
+                {
+                    'fields': ('SITE_NAME', 'SITE_DESCRIPTION'),
+                    'collapse': True,
+                },
+            ),
+            (_('Theme Options'), ('THEME',)),
+        )
 
 Usage
 -----
@@ -309,9 +347,8 @@ Setting an invalid date will fail as follow::
    CommandError: Enter a valid date.
 
 
-.. note::  If the admin field is a `MultiValueField`,
-(e.g. a datetime using `SplitDateTimeField`)
-then the separate field values need to be provided as separate arguments.
+.. note::  If the admin field is a `MultiValueField`, then the separate field values need to be provided as separate arguments.
+E.g., a datetime using `SplitDateTimeField`::
 
    CONSTANCE_CONFIG = {
        'DATETIME_VALUE': (datetime(2010, 8, 23, 11, 29, 24), 'time of the first commit'),
@@ -360,7 +397,8 @@ settings the way you like.
 
 .. code-block:: python
 
-    from constance.admin import ConstanceAdmin, ConstanceForm, Config
+    from constance.admin import ConstanceAdmin, Config
+    from constance.forms import ConstanceForm
     class CustomConfigForm(ConstanceForm):
           def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)

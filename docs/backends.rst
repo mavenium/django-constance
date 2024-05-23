@@ -23,6 +23,14 @@ to add it to your project settings::
 
     CONSTANCE_BACKEND = 'constance.backends.redisd.RedisBackend'
 
+Default redis backend retrieves values every time. There is another redis backend with local cache.
+`CachingRedisBackend` stores the value from a redis to memory at first access and checks a value ttl at next.
+Configuration installation is simple::
+
+    CONSTANCE_BACKEND = 'constance.backends.redisd.CachingRedisBackend'
+    # optionally set a value ttl
+    CONSTANCE_REDIS_CACHE_TIMEOUT = 60
+
 .. _`redis-py`: https://pypi.python.org/pypi/redis
 
 Settings
@@ -52,7 +60,7 @@ An (optional) dotted import path to a connection to use, e.g.::
 
     CONSTANCE_REDIS_CONNECTION_CLASS = 'myproject.myapp.mockup.Connection'
 
-If you are using `django-redis <http://niwinz.github.io/django-redis/latest/>`_,
+If you are using `django-redis <https://niwinz.github.io/django-redis/latest/>`_,
 feel free to use the ``CONSTANCE_REDIS_CONNECTION_CLASS`` setting to define
 a callable that returns a redis connection, e.g.::
 
@@ -77,30 +85,26 @@ objects when storing in the Redis database. Defaults to ``pickle.DEFAULT_PROTOCO
 You might want to pin this value to a specific protocol number, since ``pickle.DEFAULT_PROTOCOL``
 means different things between versions of Python.
 
+``CONSTANCE_REDIS_CACHE_TIMEOUT``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The (optional) ttl of values in seconds used by `CachingRedisBackend` for storing in a local cache.
+Defaults to `60` seconds.
+
 Database
 --------
 
-The database backend is optional and stores the configuration values in a
+Database backend stores configuration values in a
 standard Django model. It requires the package `django-picklefield`_ for
-storing those values. Please install it like so::
-
-  pip install django-constance[database]
+storing those values.
 
 You must set the ``CONSTANCE_BACKEND`` Django setting to::
 
     CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
 
-Then add the database backend app to your :setting:`INSTALLED_APPS` setting to
-make sure the data model is correctly created::
-
-    INSTALLED_APPS = (
-        # other apps
-        'constance.backends.database',
-    )
-
 Please make sure to apply the database migrations::
 
-    python manage.py migrate database
+    python manage.py migrate
 
 .. note:: If you're upgrading Constance to 1.0 and use Django 1.7 or higher
           please make sure to let the migration system know that you've
@@ -109,6 +113,7 @@ Please make sure to apply the database migrations::
           You can do that using the ``--fake`` option of the migrate command::
 
               python manage.py migrate database --fake
+
 
 Just like the Redis backend you can set an optional prefix that is used during
 database interactions (it defaults to an empty string, ``''``). To use
@@ -138,12 +143,25 @@ configured cache backend to enable this feature, e.g. "default"::
              cache backend included in Django because correct cache
              invalidation can't be guaranteed.
 
+             If you try this, Constance will throw an error and refuse
+             to let your application start. You can work around this by
+             subclassing ``constance.backends.database.DatabaseBackend``
+             and overriding `__init__` to remove the check. You'll
+             want to consult the source code for that function to see
+             exactly how.
+
+             We're deliberately being vague about this, because it's
+             dangerous; the behavior is undefined, and could even cause
+             your app to crash. Nevertheless, there are some limited
+             circumstances in which this could be useful, but please
+             think carefully before going down this path.
+
 .. note:: By default Constance will autofill the cache on startup and after
           saving any of the config values. If you want to disable the cache
           simply set the :setting:`CONSTANCE_DATABASE_CACHE_AUTOFILL_TIMEOUT`
           setting to ``None``.
 
-.. _django-picklefield: http://pypi.python.org/pypi/django-picklefield/
+.. _django-picklefield: https://pypi.org/project/django-picklefield/
 
 Memory
 ------

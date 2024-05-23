@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.exceptions import ImproperlyConfigured
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 try:
     from picklefield import PickledObjectField
@@ -18,7 +18,10 @@ class Constance(models.Model):
     class Meta:
         verbose_name = _('constance')
         verbose_name_plural = _('constances')
-        db_table = 'constance_config'
+        permissions = [
+            ('change_config', 'Can change config'),
+            ('view_config', 'Can view config'),
+        ]
 
     def __str__(self):
         return self.key

@@ -1,6 +1,77 @@
 Changelog
 ---------
 
+v3.1.0 (2023/08/21)
+~~~~~~~~~~~~~~~~~~~
+
+* Add support for using a subdirectory of `MEDIA_ROOT` for file fields
+
+* Remove pypy from tox tests
+
+v3.0.0 (2023/07/27)
+~~~~~~~~~~~~~~~~~~~
+
+* Refactor database backend
+  Backward incompatible changes:
+  remove ``'constance.backends.database'`` from ``INSTALLED_APPS``
+
+* Dropped support for python < 3.7 and django < 3.2
+
+* Example app now supports django 4.1
+
+* Add support for django 4.2
+
+* Forward the request when saving the admin changelist form
+
+v2.9.1 (2022/08/11)
+~~~~~~~~~~~~~~~~~~
+
+* Add support for gettext in fieldset headers
+
+* Add support for Django 4.1
+
+* Fix text format for MultiValueField usage
+
+v2.9.0 (2022/03/11)
+~~~~~~~~~~~~~~~~~~~
+
+* Added arabic translation
+
+* Add concrete_model class attribute to fake admin model
+
+* Added tests for django 3.2
+
+* Fix do not detect datetime fields as date type
+
+* Added support for python 3.10
+
+* Fixes for Ukrainian locale
+
+* Added documentation for constance_dbs config
+
+* Add caching redis backend
+
+* Serialize according to widget
+
+* Add default_auto_field to database backend
+
+v2.8.0 (2020/11/19)
+~~~~~~~~~~~~~~~~~~~
+
+* Prevent reset to default for file field
+
+* Fields_list can be a dictionary, when a fieldset is defined as collapsible
+
+* Create and add fa language translations files
+
+* Respect other classes added by admin templates
+
+* Removed deprecated url()
+
+* Use gettext_lazy instead of ugettext_lazy
+
+* Updated python and django version support
+
 v2.7.0 (2020/06/22)
 ~~~~~~~~~~~~~~~~~~~
 

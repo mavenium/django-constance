@@ -14,6 +14,8 @@ CONFIG_FIELDSETS = getattr(settings, 'CONSTANCE_CONFIG_FIELDSETS', {})
 
 ADDITIONAL_FIELDS = getattr(settings, 'CONSTANCE_ADDITIONAL_FIELDS', {})
 
+FILE_ROOT = getattr(settings, 'CONSTANCE_FILE_ROOT', '')
+
 DATABASE_CACHE_BACKEND = getattr(
     settings,
     'CONSTANCE_DATABASE_CACHE_BACKEND',
@@ -29,6 +31,8 @@ DATABASE_CACHE_AUTOFILL_TIMEOUT = getattr(
 DATABASE_PREFIX = getattr(settings, 'CONSTANCE_DATABASE_PREFIX', '')
 
 REDIS_PREFIX = getattr(settings, 'CONSTANCE_REDIS_PREFIX', 'constance:')
+
+REDIS_CACHE_TIMEOUT = getattr(settings, 'CONSTANCE_REDIS_CACHE_TIMEOUT', 60)
 
 REDIS_CONNECTION_CLASS = getattr(
     settings,

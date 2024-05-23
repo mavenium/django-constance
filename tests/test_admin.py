@@ -1,17 +1,19 @@
 from datetime import datetime
 
-import mock
+from unittest import mock
 from django.contrib import admin
 from django.contrib.auth.models import User, Permission
-from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 from django.template.defaultfilters import linebreaksbr
 from django.test import TestCase, RequestFactory
+from django.utils.translation import gettext_lazy as _
 
 from constance import settings
 from constance.admin import Config
-from constance.admin import get_values
+from constance.utils import get_values
+from constance.forms import ConstanceForm
+from unittest import mock
 
 
 class TestAdmin(TestCase):
@@ -53,10 +55,6 @@ class TestAdmin(TestCase):
         response = self.options.changelist_view(request, {})
         self.assertEqual(response.status_code, 200)
 
-    def test_str(self):
-        ct = ContentType.objects.get(app_label='constance', model='config')
-        self.assertEqual(str(ct), 'config')
-
     def test_linebreaks(self):
         self.client.login(username='admin', password='nimda')
         request = self.rf.get('/admin/constance/config/')
@@ -70,6 +68,18 @@ class TestAdmin(TestCase):
         'Text': ('STRING_VALUE',),
     })
     def test_fieldset_headers(self):
+        self.client.login(username='admin', password='nimda')
+        request = self.rf.get('/admin/constance/config/')
+        request.user = self.superuser
+        response = self.options.changelist_view(request, {})
+        self.assertContains(response, '<h2>Numbers</h2>')
+        self.assertContains(response, '<h2>Text</h2>')
+
+    @mock.patch('constance.settings.CONFIG_FIELDSETS', (
+        ('Numbers', ('INT_VALUE',)),
+        ('Text', ('STRING_VALUE',)),
+    ))
+    def test_fieldset_tuple(self):
         self.client.login(username='admin', password='nimda')
         request = self.rf.get('/admin/constance/config/')
         request.user = self.superuser
@@ -101,21 +111,42 @@ class TestAdmin(TestCase):
         'INT_VALUE': (1, 'some int'),
     })
     @mock.patch('constance.settings.IGNORE_ADMIN_VERSION_CHECK', True)
+    @mock.patch("constance.forms.ConstanceForm.save", lambda _: None)
+    @mock.patch("constance.forms.ConstanceForm.is_valid", lambda _: True)
     def test_submit(self):
         """
         Test that submitting the admin page results in an http redirect when
         everything is in order.
         """
+        initial_value = {"INT_VALUE": settings.CONFIG['INT_VALUE'][0]}
+        
         self.client.login(username='admin', password='nimda')
+        
         request = self.rf.post('/admin/constance/config/', data={
-            "INT_VALUE": settings.CONFIG['INT_VALUE'][0],
+            **initial_value,
             "version": "123",
         })
+        
         request.user = self.superuser
         request._dont_enforce_csrf_checks = True
-        with mock.patch("constance.admin.ConstanceForm.save"):
-            with mock.patch("django.contrib.messages.add_message"):
+
+        with mock.patch("django.contrib.messages.add_message") as mock_message:
+            with mock.patch.object(ConstanceForm, "__init__", 
+                **initial_value, 
+                return_value=None
+            ) as mock_form:
                 response = self.options.changelist_view(request, {})
+                mock_form.assert_called_with(
+                    data=request.POST, 
+                    files=request.FILES, 
+                    initial=initial_value, 
+                    request=request
+                )
+
+                mock_message.assert_called_with(
+                    request, 25, _('Live settings updated successfully.'),
+                )
+
         self.assertIsInstance(response, HttpResponseRedirect)
 
     @mock.patch('constance.settings.CONFIG_FIELDSETS', {
@@ -172,7 +203,8 @@ class TestAdmin(TestCase):
         request = self.rf.post('/admin/constance/config/', data=None)
         request.user = self.superuser
         request._dont_enforce_csrf_checks = True
-        response = self.options.changelist_view(request, {})
+        with mock.patch("django.contrib.messages.add_message"):
+            response = self.options.changelist_view(request, {})
         self.assertContains(response, 'is missing field(s)')
 
     @mock.patch('constance.settings.CONFIG_FIELDSETS', {
